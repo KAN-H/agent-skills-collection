@@ -1,0 +1,13 @@
+# Temporary test artifacts
+.tmp_skill_validation.py
+.venv-skill-tests/
+test-report.md
+__pycache__/
+*.pyc
+
+# Excluded skill
+llama-cpp-windows-deployment/
+
+# OS
+.DS_Store
+Thumbs.db
