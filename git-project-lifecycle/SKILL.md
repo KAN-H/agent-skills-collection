@@ -51,6 +51,52 @@ git remote -v
 - 对新仓库首次推送，先确认远端是否已经存在；避免 `git push` 前未建立 `origin`。
 - 优先使用 `git switch` / `git checkout -b` 进行分支切换，避免在主分支上直接执行高风险操作。
 
+## GitHub Token 持久化配置（一次性 / 跨工作区复用）
+
+> 在 HTTPS 网络受限或需要 gh CLI 自动化的场景下，将 Personal Access Token 持久化存储，可避免每次在新工作区重复创建 token。
+
+### 操作步骤
+
+```powershell
+# 1. 在 GitHub 生成 Classic Token
+#    访问 https://github.com/settings/tokens/new?description=agent-skills-push&scopes=repo,workflow
+#    类型选择「Tokens (classic)」，勾选 repo（全选）和 workflow
+
+# 2. 存储到 Git Credential Manager（推荐，最安全）
+$token = "ghp_你的_token"
+@("protocol=https","host=github.com","username=你的GitHub用户名","password=$token") |
+  git credential-manager store
+
+# 3. 验证存储是否成功
+$env:GIT_TERMINAL_PROMPT=0
+@("protocol=https","host=github.com") | git credential-manager get --no-ui
+# 应输出包含 password=ghp_... 的凭据信息，无交互弹窗
+
+# 4. （可选）下载 gh CLI 并认证
+#    winget install --id GitHub.cli
+#    gh auth login --with-token < token.txt
+#    之后 gh CLI 也可直接使用该 token
+```
+
+### 验证跨工作区可用
+
+切换到任意其他工作目录测试：
+
+```powershell
+git clone https://github.com/你的用户名/仓库名.git
+# 应直接克隆成功，无需输入凭据
+```
+
+### 安全说明
+
+| 做法 | 安全性 | 说明 |
+|------|--------|------|
+| ✅ Git Credential Manager | 🔒 高 | Token 加密存储在 Windows 凭据管理器，仅当前 Windows 用户可访问 |
+| ❌ 明文写在 `$PROFILE` 或脚本中 | ⚠️ 低 | 任何能读取文件的人均可获取 |
+| ❌ 提交到 `.env` 或代码仓库 | 🔴 极低 | 一旦推送即彻底泄露 |
+
+> 每次重新申请 token 后，重复上述步骤覆盖旧 token 即可。
+
 ---
 
 ## 阶段一：SSH 密钥配置（一次性 / 每台新设备）
